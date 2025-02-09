@@ -1,0 +1,57 @@
+species:
+  aegypti:
+    name: Aedes Aegypti
+    images:
+      - path: AEDES_AEGYPTI1.jpg
+      - path: AEDES_AEGYPTI2.jpg
+      - path: AEDES_AEGYPTI3.png
+
+  pipiens:
+    name: Culex Pipiens
+    images:
+      - path: CULEX_PIPIENS1.jpg
+      - path: CULEX_PIPIENS2.jpg
+      - path: CULEX_PIPIENS3.png
+
+  albopictus:
+    name: Aedes Albopictus
+    images:
+      - path: AEDES_ALBOPICTUS1.jpg
+      - path: AEDES_ALBOPICTUS2.png
+      - path: AEDES_ALBOPICTUS3.jpg
+      - path: AEDES_ALBOPICTUS4.jpg
+
+  vexans:
+    name: Aedes Vexans
+    images:
+      - path: AEDES_VEXANS1.jpg
+      - path: AEDES_VEXANS2.jpg
+      - path: AEDES_VEXANS3.jpg
+      - path: AEDES_VEXANS4.jpg
+      - path: AEDES_VEXANS5.jpg
+
+  niveus:
+    name: Aedes Niveus
+    images:
+      - path: AEDES_NIVEUS1.png
+      - path: AEDES_NIVEUS2.png
+      - path: AEDES_NIVEUS3.png
+
+  quinquefasciatus:
+    name: Culex Quinquefasciatus
+    images:
+      - path: CULEX_QUINQUEFASCIATUS1.jpg
+      - path: CULEX_QUINQUEFASCIATUS2.jpg
+      - path: CULEX_QUINQUEFASCIATUS3.jpg
+
+  vishnui:
+    name: Culex Vishnui
+    images:
+      - path: CULEX_VISHNUI1.png
+      - path: CULEX_VISHNUI2.png
+
+  tritaeniorhynchus:
+    name: Culex Tritaeniorhynchus
+    images:
+      - path: CULEX_TRITAENIORHYNCHUS1.png
+      - path: CULEX_TRITAENIORHYNCHUS2.png
