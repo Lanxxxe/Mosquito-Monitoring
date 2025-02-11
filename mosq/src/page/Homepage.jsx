@@ -19,11 +19,8 @@ import japanEncephalitis from '../assets/danger/japanese-encephalitis.png'
 import stlouis from '../assets/danger/st-louis-encephalitis.jpg'
 
 
-
 import axios from 'axios';
-import io from 'socket.io-client';
 
-const socket = io('http://localhost:3000');
 
 const mosquitoImages = {
   "Aedes Aegypti" : aegypti,
@@ -52,6 +49,7 @@ const Homepage = () => {
   const [mosquitoData, setMosquitoData] = useState(null);
   const [mostFrequent, setMostFrequent] = useState(null);
   const [otherMosquitoes, setOtherMosquitoes] = useState([]);
+  // const [data, processData] = useState([]);
 
   useEffect(() => {
     // Initial data fetch using Axios
@@ -63,13 +61,26 @@ const Homepage = () => {
         console.error('Error fetching mosquito data:', error);
       });
 
-    // Real-time updates using Socket.IO
-    socket.on('updateDetectedStats', (data) => {
-      processData(data.rows);
-    });
+      // Connect to WebSocket for real-time updates
+      const ws = new WebSocket('ws://localhost:3000');
 
-    // Clean up socket on component unmount to avoid duplicate listeners
-    return () => socket.off('updateDetectedStats');
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+      };
+
+      ws.onmessage = (event) => {
+        const newData = JSON.parse(event.data);
+        processData(newData);
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket disconnected');
+      };
+
+      // Cleanup WebSocket connection on unmount
+      return () => {
+        ws.close();
+      };
   }, []);
 
   // Function to process data
@@ -128,7 +139,7 @@ const Homepage = () => {
 
         <div className='flex-1 p-5 rounded-md'>
             <p className='text-2xl font-bold text-slate-700'>Diseases</p>
-            {mostFrequent.diseases.split(', ').map((disease, index) => (
+            {mostFrequent.diseases.split(',').map((disease, index) => (
                 <div key={index} className='flex items-center justify-start gap-5 p-3 shadow2xl mt-5'>
                   <img className='w-25 rounded-md' src={diseasesImages[disease]} alt="diseasesImages[disease]" />
                   <p>{disease}</p>
