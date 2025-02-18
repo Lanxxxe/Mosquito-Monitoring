@@ -12,6 +12,11 @@ app.use(cors({
     credentials: true
 }));
 
+app.get('/api/detected-stats', async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', 'https://mosmo.vercel.app'); // Explicit CORS
+    res.json({ message: "CORS should work now!" });
+});
+
 const mongoURI = process.env.MONGO_URI
 
 mongoose.connect(mongoURI)
