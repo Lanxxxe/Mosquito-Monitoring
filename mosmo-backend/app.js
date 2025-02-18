@@ -1,15 +1,10 @@
 require('dotenv').config();
 
 const express = require('express');
-const http = require('http');
-const WebSocket = require('ws');
 const mongoose = require('mongoose');
-const { Server } = require('socket.io');
 const cors = require('cors');
 
 const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
 
 app.use(cors({
     origin: 'https://mosmo.vercel.app/',
@@ -17,7 +12,6 @@ app.use(cors({
     credentials: true
 }));
 
-// Connect to MongoDB
 const mongoURI = process.env.MONGO_URI
 
 mongoose.connect(mongoURI)
@@ -41,21 +35,9 @@ const MosquitoDetection = mongoose.model('mosquito_detected', new mongoose.Schem
     detection_time: Date
 }, { collection: 'mosquito_detected' }));
 
-// Function to fetch mosquito statistics
 const getMosquitoStats = async () => {
     try {
-        // const totalDetections = await MosquitoDetection.countDocuments();
-        // const mosData = await MosquitoDetection.find();
-        // console.log(mosData);
-        // const mos = await Mosquito.find();
-        // console.log(mos);
-        // const des = await Disease.find();
-        // console.log(des);
-
-        // Step 1: Count total detections
         const totalDetections = await MosquitoDetection.countDocuments();
-
-        // Step 2: Aggregate mosquito detection counts
         const detectionCounts = await MosquitoDetection.aggregate([
             {
                 $group: {
@@ -65,26 +47,18 @@ const getMosquitoStats = async () => {
             }
         ]);
 
-        // Step 3: Fetch all mosquito details
         const mosquitoes = await Mosquito.find();
-
-        // Step 4: Fetch disease details
         const diseases = await Disease.find();
-
-        // Step 5: Map mosquito data
         const mosquitoStats = detectionCounts.map(detection => {
-            // Find matching mosquito details
             const mosquitoInfo = mosquitoes.find(m => m.name === detection._id);
             
             if (!mosquitoInfo) return null;
 
-            // Find diseases associated with the mosquito
             const diseaseNames = mosquitoInfo.diseases.map(diseaseId => {
                 const disease = diseases.find(d => d._id.equals(diseaseId));
                 return disease ? disease.name : null;
             }).filter(Boolean).join(', ');
 
-            // Compute detection percentage
             const detected_percentage = ((detection.detected_count / totalDetections) * 100).toFixed(2);
 
             return {
@@ -104,26 +78,6 @@ const getMosquitoStats = async () => {
 };
 
 
-// WebSocket connection
-wss.on('connection', async (ws) => {
-    console.log('New client connected');
-
-    const sendStats = async () => {
-        const stats = await getMosquitoStats();
-        ws.send(JSON.stringify(stats));
-    };
-
-    sendStats(); // Send initial data
-
-    const interval = setInterval(sendStats, 5000);
-
-    ws.on('close', () => {
-        console.log('Client disconnected');
-        clearInterval(interval);
-    });
-});
-
-
 // API route
 app.get('/api/detected-stats', async (req, res) => {
     console.log('Getting api.....');
@@ -131,7 +85,4 @@ app.get('/api/detected-stats', async (req, res) => {
     res.json(data);
 });
 
-
-server.listen(3000, () => {
-    console.log('Server is running on http://localhost:3000');
-});
+module.exports = app;

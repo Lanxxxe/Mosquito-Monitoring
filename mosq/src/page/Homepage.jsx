@@ -51,32 +51,13 @@ const Homepage = () => {
   const [otherMosquitoes, setOtherMosquitoes] = useState([]);
 
   useEffect(() => {
-    axios.get('http://localhost:3000/api/detected-stats')
+    axios.get('https://mosquito-monitoring.vercel.app/api/detected-stats')
       .then(response => {
         processData(response.data.rows);
       })
       .catch(error => {
         console.error('Error fetching mosquito data:', error);
       });
-
-      const ws = new WebSocket('ws://localhost:3000');
-
-      ws.onopen = () => {
-        console.log('WebSocket connected');
-      };
-
-      ws.onmessage = (event) => {
-        const newData = JSON.parse(event.data);
-        processData(newData);
-      };
-
-      ws.onclose = () => {
-        console.log('WebSocket disconnected');
-      };
-
-      return () => {
-        ws.close();
-      };
   }, []);
 
   const processData = (data) => {
