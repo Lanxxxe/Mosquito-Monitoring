@@ -7,7 +7,7 @@ const cors = require('cors');
 const app = express();
 
 app.use(cors({
-    origin: 'https://mosmo.vercel.app/',
+    origin: ['https://mosmo.vercel.app/', 'http://localhost:5173'],
     methods: ['GET', 'POST'],
     credentials: true
 }));
