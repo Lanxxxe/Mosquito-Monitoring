@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: 'https://mosmo.vercel.app/',
     methods: ['GET', 'POST'],
     credentials: true
 }));
