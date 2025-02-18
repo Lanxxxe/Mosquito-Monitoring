@@ -1,69 +1,30 @@
-import sqlite3
+from pymongo import MongoClient
 from datetime import datetime
 
-# Register the adapter and converter for datetime
-sqlite3.register_adapter(datetime, lambda val: val.isoformat())
-sqlite3.register_converter("DATETIME", lambda val: datetime.fromisoformat(val.decode("utf-8")))
+PASSWORD = 'b6cZBOe084OonRuo'
+USERNAME = 'danielheist260'
 
 class MosquitoDatabase:
-    def __init__(self, db_name='../../mosquito_detection.db'):
-        self.conn = sqlite3.connect(db_name)
-        self.cursor = self.conn.cursor()
-        self.create_tables()
-
-    def create_tables(self):
-        self.cursor.execute('''
-        CREATE TABLE IF NOT EXISTS mosquito (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            description TEXT NOT NULL,
-            image_path TEXT
-        )
-        ''')
-
-        self.cursor.execute('''
-        CREATE TABLE IF NOT EXISTS mosquito_detected (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            species_name TEXT NOT NULL,
-            detection_time DATETIME NOT NULL,
-            FOREIGN KEY (species_name) REFERENCES mosquito(name)
-        )
-        ''')
-
-        self.cursor.execute('''
-        CREATE TABLE IF NOT EXISTS disease (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE
-        )
-        ''')
-
-        self.cursor.execute('''
-        CREATE TABLE IF NOT EXISTS mosquito_disease (
-            mosquito_id INTEGER NOT NULL,
-            disease_id INTEGER NOT NULL,
-            PRIMARY KEY (mosquito_id, disease_id),
-            FOREIGN KEY (mosquito_id) REFERENCES mosquito(id),
-            FOREIGN KEY (disease_id) REFERENCES disease(id)
-        )
-        ''')
-        
-        self.conn.commit()
+    def __init__(self, uri=f"mongodb+srv://danielheist260:{PASSWORD}@mosmo.ewgga.mongodb.net/", db_name="mosmo"):
+        self.client = MongoClient(uri)
+        self.db = self.client[db_name]
+        self.mosquito_collection = self.db["mosquito"]
+        self.disease_collection = self.db["disease"]
+        self.detection_collection = self.db["mosquito_detected"]
 
     def add_mosquito_detection(self, species_name):
         detection_time = datetime.now()
-        self.cursor.execute('''
-        INSERT INTO mosquito_detected (species_name, detection_time) 
-        VALUES (?, ?)
-        ''', (species_name, detection_time))
-        self.conn.commit()
+        self.detection_collection.insert_one({
+            "species_name": species_name,
+            "detection_time": detection_time
+        })
+        print(f"Added mosquito detection: {species_name} at {detection_time}")
 
-    def is_mosquito_table_empty(self):
-        self.cursor.execute('SELECT COUNT(*) FROM mosquito')
-        count = self.cursor.fetchone()[0]
-        return count == 0
+    def is_mosquito_collection_empty(self):
+        return self.mosquito_collection.count_documents({}) == 0
 
     def add_static_mosquito_info(self):
-        if not self.is_mosquito_table_empty():
+        if not self.is_mosquito_collection_empty():
             return
 
         mosquitoes = {
@@ -88,41 +49,34 @@ class MosquitoDatabase:
             "Culex Tritaeniorhynchus": ["Japanese Encephalitis"]
         }
 
+        # Insert diseases and keep track of IDs
         disease_ids = {}
+        for disease in set(d for d_list in dangers.values() for d in d_list):
+            disease_doc = self.disease_collection.find_one({"name": disease})
+            if not disease_doc:
+                disease_id = self.disease_collection.insert_one({"name": disease}).inserted_id
+            else:
+                disease_id = disease_doc["_id"]
+            disease_ids[disease] = disease_id
 
-        # Insert diseases into the disease table
-        for disease_list in dangers.values():
-            for disease in disease_list:
-                if disease not in disease_ids:
-                    self.cursor.execute('INSERT OR IGNORE INTO disease (name) VALUES (?)', (disease,))
-                    self.conn.commit()
-                    self.cursor.execute('SELECT id FROM disease WHERE name = ?', (disease,))
-                    disease_ids[disease] = self.cursor.fetchone()[0]
-
-        # Insert mosquitoes and their relationships to diseases
+        # Insert mosquitoes with references to diseases
         for name, description in mosquitoes.items():
-            self.cursor.execute('''
-            INSERT INTO mosquito (name, description, image_path) 
-            VALUES (?, ?, ?)
-            ''', (name, description, ''))
-            self.conn.commit()
+            mosquito_data = {
+                "name": name,
+                "description": description,
+                "diseases": [disease_ids[d] for d in dangers[name]],
+                "image_path": ""
+            }
+            self.mosquito_collection.insert_one(mosquito_data)
 
-            self.cursor.execute('SELECT id FROM mosquito WHERE name = ?', (name,))
-            mosquito_id = self.cursor.fetchone()[0]
-
-            for disease in dangers[name]:
-                self.cursor.execute('''
-                INSERT INTO mosquito_disease (mosquito_id, disease_id) 
-                VALUES (?, ?)
-                ''', (mosquito_id, disease_ids[disease]))
-
-        self.conn.commit()
+        print("Mosquito and disease data inserted successfully.")
 
     def close_connection(self):
-        self.conn.close()
+        self.client.close()
+        print("Database connection closed.")
 
 # Example usage:
-# db = MosquitoDatabase()
-# db.add_static_mosquito_info()
-# db.add_mosquito_detection('Aedes aegypti')
-# db.close_connection()
+db = MosquitoDatabase()
+db.add_static_mosquito_info()
+# db.add_mosquito_detection('Aedes Aegypti')
+db.close_connection()

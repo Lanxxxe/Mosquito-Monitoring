@@ -2,18 +2,19 @@ import cv2
 import yaml
 import time
 import numpy as np
-
-# Database Configuration
-from mosmo_db_config import MosquitoDatabase
-
-# Initialize Database Connection
-db = MosquitoDatabase()
-db.add_static_mosquito_info()
+from picamera2 import Picamera2
 
 # Load YAML file
-with open("./SPECIESMOSQ.yaml", "r") as f:
+with open("/home/RASPBERRYPI/Mosquito Detector/SPECIESMOSQ.yaml", "r") as f:
     data = yaml.safe_load(f)
 
+cap = Picamera2()
+cap.preview_configuration.main.size = (720, 480)
+cap.preview_configuration.main.format = "RGB888"
+cap.preview_configuration.controls.FrameRate=60
+cap.preview_configuration.align()
+cap.configure("preview")
+cap.start()
 
 # Load the images from YAML file paths
 aegypti_images = [cv2.imread(img['path'], cv2.IMREAD_GRAYSCALE) for img in data['species']['aegypti']['images']]
@@ -130,7 +131,7 @@ last_display_time = time.time()
 # Function to capture image from camera and detect objects
 def capture_and_detect():
     global last_display_time
-    cap = cv2.VideoCapture(0)
+    
     
     # FLANN parameters
     FLANN_INDEX_LSH = 6
@@ -178,9 +179,7 @@ def capture_and_detect():
     tritaeniorhynchus_desc_index = 0
 
     while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+        frame=cap.capture_array()
 
         # Convert the frame to grayscale
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -264,191 +263,155 @@ def capture_and_detect():
         good_matches_threshold = 10
         
         # Handle Aedes Aegypti detection
-        try:
+        if current_time - last_display_time >= 2:
+            if len(good_matches_aegypti) > good_matches_threshold and not aegypti_detected:
+                print(f"Detected: {data['species']['aegypti']['name']}")
+                aegypti_detected = True
+                aegypti_desc_index = 0
+                last_display_time = current_time
+
+        # Display Aedes Aegypti descriptions
+        if aegypti_detected:
             if current_time - last_display_time >= 2:
-                if len(good_matches_aegypti) > good_matches_threshold and not aegypti_detected:
-                    species_name = data['species']['aegypti']['name']
-                    print(f"Detected: {species_name}")
-                    aegypti_detected = True
-                    db.add_mosquito_detection(species_name)
+                print(aegypti_descriptions[aegypti_desc_index])
+                aegypti_desc_index += 1
+                last_display_time = current_time
+                if aegypti_desc_index >= len(aegypti_descriptions):
+                    aegypti_detected = False
                     aegypti_desc_index = 0
-                    last_display_time = current_time
 
+        if current_time - last_display_time >= 2:
+            if len(good_matches_pipiens) > good_matches_threshold and not pipiens_detected:
+                print(f"Detected: {data['species']['aegypti']['name']}")
+                pipiens_detected = True
+                pipiens_desc_index = 0
+                last_display_time = current_time
 
-            # Display Aedes Aegypti descriptions
-            if aegypti_detected:
-                if current_time - last_display_time >= 2:
-                    print(aegypti_descriptions[aegypti_desc_index])
-                    aegypti_desc_index += 1
-                    last_display_time = current_time
-                    if aegypti_desc_index >= len(aegypti_descriptions):
-                        aegypti_detected = False
-                        aegypti_desc_index = 0
-                        # print(f'Aegypti: {good_matches_aegypti}')
-
-
+        # Display Aedes Aegypti descriptions
+        if pipiens_detected:
             if current_time - last_display_time >= 2:
-                if len(good_matches_pipiens) > good_matches_threshold and not pipiens_detected:
-                    species_name = data['species']['pipiens']['name']
-                    print(f"Detected: {species_name}")
-                    db.add_mosquito_detection(species_name)
-                    pipiens_detected = True
+                print(pipiens_descriptions[pipiens_desc_index])
+                pipiens_desc_index += 1
+                last_display_time = current_time
+                if pipiens_desc_index >= len(pipiens_descriptions):
+                    pipiens_detected = False
                     pipiens_desc_index = 0
-                    last_display_time = current_time
 
-            # Display Aedes Aegypti descriptions
-            if pipiens_detected:
-                if current_time - last_display_time >= 2:
-                    print(pipiens_descriptions[pipiens_desc_index])
-                    pipiens_desc_index += 1
-                    last_display_time = current_time
-                    if pipiens_desc_index >= len(pipiens_descriptions):
-                        pipiens_detected = False
-                        pipiens_desc_index = 0
-                        # print(f'Pipiens: {good_matches_pipiens}')
+        # Handle Aedes Albopictus detection
+        if current_time - last_display_time >= 2:
+            if len(good_matches_albopictus) > good_matches_threshold and not albopictus_detected:
+                print (f"Detected: {data['species']['albopictus']['name']}")
+                albopictus_detected = True
+                albopictus_desc_index = 0
+                last_display_time = current_time
 
-            # Handle Aedes Albopictus detection
+        # Display Aedes Albopictus descriptions
+        if albopictus_detected:
             if current_time - last_display_time >= 2:
-                if len(good_matches_albopictus) > good_matches_threshold and not albopictus_detected:
-                    species_name = data['species']['albopictus']['name']
-                    print (f"Detected: {species_name}")
-                    albopictus_detected = True
-                    db.add_mosquito_detection(species_name)
+                print(albopictus_descriptions[albopictus_desc_index])
+                albopictus_desc_index += 1
+                last_display_time = current_time
+                if albopictus_desc_index >= len(albopictus_descriptions):
+                    albopictus_detected = False
                     albopictus_desc_index = 0
-                    last_display_time = current_time
 
-            # Display Aedes Albopictus descriptions
-            if albopictus_detected:
-                if current_time - last_display_time >= 2:
-                    print(albopictus_descriptions[albopictus_desc_index])
-                    albopictus_desc_index += 1
-                    last_display_time = current_time
-                    if albopictus_desc_index >= len(albopictus_descriptions):
-                        albopictus_detected = False
-                        albopictus_desc_index = 0
-                        # print(f'Albopictus: {good_matches_albopictus}')
+        # Handle Aedes Vexans detection
+        if current_time - last_display_time >= 2:
+            if len(good_matches_vexans) > good_matches_threshold and not vexans_detected:
+                print(f"Detected: {data['species']['vexans']['name']}")
+                vexans_detected = True
+                vexans_desc_index = 0
+                last_display_time = current_time
 
-            # Handle Aedes Vexans detection
+        # Display Aedes Vexans descriptions
+        if vexans_detected:
             if current_time - last_display_time >= 2:
-                if len(good_matches_vexans) > good_matches_threshold and not vexans_detected:
-                    species_name = data['species']['vexans']['name']
-                    print(f"Detected: {species_name}")
-                    vexans_detected = True
-                    db.add_mosquito_detection(species_name)
+                print(vexans_descriptions[vexans_desc_index])
+                vexans_desc_index += 1
+                last_display_time = current_time
+                if vexans_desc_index >= len(vexans_descriptions):
+                    vexans_detected = False
                     vexans_desc_index = 0
-                    last_display_time = current_time
 
-            # Display Aedes Vexans descriptions
-            if vexans_detected:
-                if current_time - last_display_time >= 2:
-                    print(vexans_descriptions[vexans_desc_index])
-                    vexans_desc_index += 1
-                    last_display_time = current_time
-                    if vexans_desc_index >= len(vexans_descriptions):
-                        vexans_detected = False
-                        vexans_desc_index = 0
-                        # print(f'Vexans: {good_matches_vexans}')
+        # Handle Aedes Niveus detection
+        if current_time - last_display_time >= 2:
+            if len(good_matches_niveus) > good_matches_threshold and not niveus_detected:
+                print(f"Detected: {data['species']['niveus']['name']}")
+                niveus_detected = True
+                niveus_desc_index = 0
+                last_display_time = current_time
 
-
-            # Handle Aedes Niveus detection
+        # Display Aedes Niveus descriptions
+        if niveus_detected:
             if current_time - last_display_time >= 2:
-                if len(good_matches_niveus) > good_matches_threshold and not niveus_detected:
-                    species_name = data['species']['niveus']['name']
-                    print(f"Detected: {species_name}")
-                    niveus_detected = True
-                    db.add_mosquito_detection(species_name)
+                print(niveus_descriptions[niveus_desc_index])
+                niveus_desc_index += 1
+                last_display_time = current_time
+                if niveus_desc_index >= len(niveus_descriptions):
+                    niveus_detected = False
                     niveus_desc_index = 0
-                    last_display_time = current_time
-        
 
+        # Handle Culex Quinquefasciatus detection
+        if current_time - last_display_time >= 2:
+            if len(good_matches_quinquefasciatus) > good_matches_threshold and not quinquefasciatus_detected:
+                print(f"Detected: {data['species']['quinquefasciatus']['name']}")
+                quinquefasciatus_detected = True
+                quinquefasciatus_desc_index = 0
+                last_display_time = current_time
 
-            # Display Aedes Niveus descriptions
-            if niveus_detected:
-                if current_time - last_display_time >= 2:
-                    print(niveus_descriptions[niveus_desc_index])
-                    niveus_desc_index += 1
-                    last_display_time = current_time
-                    if niveus_desc_index >= len(niveus_descriptions):
-                        niveus_detected = False
-                        niveus_desc_index = 0
-                        # print(f'Niveus: {good_matches_niveus}')
-
-
-            # Handle Culex Quinquefasciatus detection
+        # Display Culex Quinquefasciatus descriptions
+        if quinquefasciatus_detected:
             if current_time - last_display_time >= 2:
-                if len(good_matches_quinquefasciatus) > good_matches_threshold and not quinquefasciatus_detected:
-                    species_name = data['species']['quinquefasciatus']['name']
-                    print(f"Detected: {species_name}")
-                    quinquefasciatus_detected = True
-                    db.add_mosquito_detection(species_name)
+                print(quinquefasciatus_descriptions[quinquefasciatus_desc_index])
+                quinquefasciatus_desc_index += 1
+                last_display_time = current_time
+                if quinquefasciatus_desc_index >= len(quinquefasciatus_descriptions):
+                    quinquefasciatus_detected = False
                     quinquefasciatus_desc_index = 0
-                    last_display_time = current_time
 
+        # Handle Culex Vishnui detection
+        if current_time - last_display_time >= 2:
+            if len(good_matches_vishnui) > good_matches_threshold and not vishnui_detected:
+                print(f"Detected: {data['species']['vishnui']['name']}")
+                vishnui_detected = True
+                vishnui_desc_index = 0
+                last_display_time = current_time
 
-            # Display Culex Quinquefasciatus descriptions
-            if quinquefasciatus_detected:
-                if current_time - last_display_time >= 2:
-                    print(quinquefasciatus_descriptions[quinquefasciatus_desc_index])
-                    quinquefasciatus_desc_index += 1
-                    last_display_time = current_time
-                    if quinquefasciatus_desc_index >= len(quinquefasciatus_descriptions):
-                        quinquefasciatus_detected = False
-                        quinquefasciatus_desc_index = 0
-                        # print(f'Quinquefasciatus: {good_matches_quinquefasciatus}')
-
-
-            # Handle Culex Vishnui detection
+        # Display Culex Vishnui descriptions
+        if vishnui_detected:
             if current_time - last_display_time >= 2:
-                if len(good_matches_vishnui) > good_matches_threshold and not vishnui_detected:
-                    species_name = data['species']['vishnui']['name']
-                    print(f"Detected: {species_name}")
-                    vishnui_detected = True
-                    db.add_mosquito_detection(species_name)
+                print(vishnui_descriptions[vishnui_desc_index])
+                vishnui_desc_index += 1
+                last_display_time = current_time
+                if vishnui_desc_index >= len(vishnui_descriptions):
+                    vishnui_detected = False
                     vishnui_desc_index = 0
-                    last_display_time = current_time
 
+        # Handle Culex Tritaeniorhynchus detection
+        if current_time - last_display_time >= 2:
+            if len(good_matches_tritaeniorhynchus) > good_matches_threshold and not tritaeniorhynchus_detected:
+                print(f"Detected: {data['species']['tritaeniorhynchus']['name']}")
+                tritaeniorhynchus_detected = True
+                tritaeniorhynchus_desc_index = 0
+                last_display_time = current_time
 
-            # Display Culex Vishnui descriptions
-            if vishnui_detected:
-                if current_time - last_display_time >= 2:
-                    print(vishnui_descriptions[vishnui_desc_index])
-                    vishnui_desc_index += 1
-                    last_display_time = current_time
-                    if vishnui_desc_index >= len(vishnui_descriptions):
-                        vishnui_detected = False
-                        vishnui_desc_index = 0
-                        # print(f'Vishnui: {good_matches_vishnui}')
-
-            # Handle Culex Tritaeniorhynchus detection
+        # Display Culex Tritaeniorhynchus descriptions
+        if tritaeniorhynchus_detected:
             if current_time - last_display_time >= 2:
-                if len(good_matches_tritaeniorhynchus) > good_matches_threshold and not tritaeniorhynchus_detected:
-                    species_name = data['species']['tritaeniorhynchus']['name']
-                    print(f" Detected: {species_name}")
-                    tritaeniorhynchus_detected = True
-                    db.add_mosquito_detection(species_name)
+                print(tritaeniorhynchus_descriptions[tritaeniorhynchus_desc_index])
+                tritaeniorhynchus_desc_index += 1
+                last_display_time = current_time
+                if tritaeniorhynchus_desc_index >= len(tritaeniorhynchus_descriptions):
+                    tritaeniorhynchus_detected = False
                     tritaeniorhynchus_desc_index = 0
-                    last_display_time = current_time
 
-            # Display Culex Tritaeniorhynchus descriptions
-            if tritaeniorhynchus_detected:
-                if current_time - last_display_time >= 2:
-                    print(tritaeniorhynchus_descriptions[tritaeniorhynchus_desc_index])
-                    tritaeniorhynchus_desc_index += 1
-                    last_display_time = current_time
-                    if tritaeniorhynchus_desc_index >= len(tritaeniorhynchus_descriptions):
-                        tritaeniorhynchus_detected = False
-                        tritaeniorhynchus_desc_index = 0
-                        # print(f'Tritaeniorhynchus: {good_matches_tritaeniorhynchus}')
+        # If no detection, print message
+        if not (aegypti_detected or albopictus_detected or vexans_detected or niveus_detected or
+                quinquefasciatus_detected or vishnui_detected or tritaeniorhynchus_detected):
+            if current_time - last_display_time >= 10:
+                print("No detection")
+                last_display_time = current_time
 
-            # If no detection, print message
-            if not (aegypti_detected or albopictus_detected or vexans_detected or niveus_detected or
-                    quinquefasciatus_detected or vishnui_detected or tritaeniorhynchus_detected):
-                if current_time - last_display_time >= 10:
-                    print("No detection")
-                    last_display_time = current_time
-
-        except Exception as e:
-            print(e)
         cv2.imshow('Mosquito Detector', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -458,5 +421,3 @@ def capture_and_detect():
 
 # Run the capture and detect function
 capture_and_detect()
-
-db.close_connection()
