@@ -12,10 +12,10 @@ app.use(cors({
     credentials: true
 }));
 
-app.get('/api/detected-stats', async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', 'https://mosmo.vercel.app'); // Explicit CORS
-    res.json({ message: "CORS should work now!" });
-});
+// app.get('/api/detected-stats', async (req, res) => {
+//     res.setHeader('Access-Control-Allow-Origin', 'https://mosmo.vercel.app'); 
+//     res.json({ message: "CORS should work now!" });
+// });
 
 const mongoURI = process.env.MONGO_URI
 
@@ -85,7 +85,7 @@ const getMosquitoStats = async () => {
 
 // API route
 app.get('/api/detected-stats', async (req, res) => {
-    console.log('Getting api.....');
+    res.setHeader('Access-Control-Allow-Origin', 'https://mosmo.vercel.app');
     const data = await getMosquitoStats();
     res.json(data);
 });
