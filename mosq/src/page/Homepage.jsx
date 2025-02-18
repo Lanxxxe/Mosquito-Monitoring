@@ -15,7 +15,7 @@ import chikungunya from '../assets/danger/chikungunya.jpg'
 import yellowFever from '../assets/danger/yellow-fever.jpg'
 import zikaVirus from '../assets/danger/zika-virus.jpg'
 import westNile from '../assets/danger/west-nile-virus.jpg'
-import japanEncephalitis from '../assets/danger/japanese-encephalitis.png'
+import japanEncephalitis from '../assets/danger/Japanese-Encephalitis.png'
 import stlouis from '../assets/danger/st-louis-encephalitis.jpg'
 
 
