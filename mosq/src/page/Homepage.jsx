@@ -111,7 +111,7 @@ const Homepage = () => {
 
         <div className='border border-slate-500 flex-1 p-5 rounded-md'>
             <p className='text-2xl font-bold text-slate-700'>Diseases</p>
-            {mostFrequent.diseases.split(',').map((disease, index) => (
+            {mostFrequent.diseases.split(', ').map((disease, index) => (
                 <div key={index} className='flex items-center justify-start gap-5 p-3 shadow-md mt-4'>
                   <img className='w-25 rounded-md' src={diseasesImages[disease]} alt="diseasesImages[disease]" />
                   <p>{disease}</p>
