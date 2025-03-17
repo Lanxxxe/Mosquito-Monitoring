@@ -5,17 +5,13 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
+const port = 5000;
 
 app.use(cors({
     origin: ['https://mosmo-lances-projects-1e037f69.vercel.app/', 'https://mosmo.vercel.app/', 'http://localhost:5173'],
     methods: ['GET', 'POST'],
     credentials: true
 }));
-
-// app.get('/api/detected-stats', async (req, res) => {
-//     res.setHeader('Access-Control-Allow-Origin', 'https://mosmo.vercel.app'); 
-//     res.json({ message: "CORS should work now!" });
-// });
 
 const mongoURI = process.env.MONGO_URI
 
@@ -47,7 +43,8 @@ const getMosquitoStats = async () => {
             {
                 $group: {
                     _id: "$species_name",
-                    detected_count: { $sum: 1 }
+                    detected_count: { $sum: 1 },
+                    last_detected_time: { $max: "$detection_time" }
                 }
             }
         ]);
@@ -66,12 +63,25 @@ const getMosquitoStats = async () => {
 
             const detected_percentage = ((detection.detected_count / totalDetections) * 100).toFixed(2);
 
+            const formattedTime = detection.last_detected_time
+                ? new Date(detection.last_detected_time).toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true // Ensures AM/PM format
+                })
+                : null;
+
+
             return {
                 mosquito_name: mosquitoInfo.name,
                 mosquito_description: mosquitoInfo.description,
                 diseases: diseaseNames,
                 detected_count: detection.detected_count,
-                detected_percentage: parseFloat(detected_percentage)
+                detected_percentage: parseFloat(detected_percentage),
+                last_detected_time: formattedTime
             };
         }).filter(Boolean);
 
@@ -82,12 +92,42 @@ const getMosquitoStats = async () => {
     }
 };
 
+app.get("/api/mosquito/logs/:species", async (req, res) => {
+    try {
+      const speciesName = req.params.species
+  
+      const logs = await MosquitoDetection.find({ species_name: speciesName })
+        .sort({ detection_time: -1 }) 
+        .select("detection_time -_id") 
+
+      // Format the logs
+      const formattedLogs = logs.map((log) => ({
+        detected_time: new Date(log.detection_time).toLocaleString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        }),
+      }))
+  
+      res.json({ species_name: speciesName, logs: formattedLogs })
+    } catch (err) {
+      console.error("Error fetching mosquito logs:", err)
+      res.status(500).json({ error: "Internal Server Error" })
+    }
+  })
+
 
 // API route
 app.get('/api/detected-stats', async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', 'https://mosmo.vercel.app');
+    // res.setHeader('Access-Control-Allow-Origin', 'https://mosmo.vercel.app');
     const data = await getMosquitoStats();
     res.json(data);
 });
 
 module.exports = app;
+// app.listen(port, () => {
+//   console.log(`Server running on http://localhost:${port}`);
+// });

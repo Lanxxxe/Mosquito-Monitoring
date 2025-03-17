@@ -49,9 +49,13 @@ const Homepage = () => {
   const [mosquitoData, setMosquitoData] = useState(null);
   const [mostFrequent, setMostFrequent] = useState(null);
   const [otherMosquitoes, setOtherMosquitoes] = useState([]);
+  const [selectedMosquito, setSelectedMosquito] = useState(null);
+  const [mosquitoLogs, setMosquitoLogs] = useState([]);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     axios.get('https://mosquito-monitoring.vercel.app/api/detected-stats')
+    // axios.get('http://localhost:5000/api/detected-stats')
       .then(response => {
         processData(response.data.rows);
       })
@@ -71,6 +75,20 @@ const Homepage = () => {
     setMosquitoData(data);
     setMostFrequent(mostFrequentMosquito);
     setOtherMosquitoes(remainingMosquitoes);
+  };
+
+  const fetchLogs = (mosquitoName) => {
+    axios.get(`https://mosquito-monitoring.vercel.app/api/mosquito/logs/${mosquitoName}`)
+    // axios.get(`http://localhost:5000/api/mosquito/logs/${mosquitoName}`)
+      .then(response => {
+        setMosquitoLogs(response.data.logs);
+        console.log(response);
+        setSelectedMosquito(mosquitoName);
+        setShowModal(true);
+      })
+      .catch(error => {
+        console.error("Error fetching mosquito logs:", error);
+      });
   };
 
   if (!mosquitoData) {
@@ -104,8 +122,18 @@ const Homepage = () => {
                   <p className='text-4xl font-semibold'>{mostFrequent.detected_percentage}%</p>
                   <p className='text-sm'>Percentage</p>
                 </div>
+                <div className='border-2 border-slate-600 p-6 text-center rounded-md'>
+                  <p className='text-2xl font-semibold'>{mostFrequent.last_detected_time}</p>
+                  <p className='text-sm'>Last seen</p>
+                </div>
               </div>
             </div>
+            <button
+                className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+                onClick={() => fetchLogs(mostFrequent.mosquito_name)}
+              >
+                View Logs
+            </button>
           </div>
         </div>
 
@@ -128,6 +156,7 @@ const Homepage = () => {
                 <img className='w-80 h-52 rounded-md mx-auto' src={mosquitoImages[mosquito.mosquito_name]} alt={mosquito.mosquito_name} />
                 <p className='text-pretty text-xl text-slate-800 font-bold mt-4'>{mosquito.mosquito_name}</p>
                 <p className='indent-4 max-w-80 mt-4'>{mosquito.mosquito_description}</p>
+                <p className='text-sm text-gray-500 mt-3'>Last seen {mosquito.last_detected_time}</p>
     
                 <div className='py-6 flex gap-8 items-center justify-start mt-auto'>
                   <div className='border-2 border-slate-600 p-5 text-center rounded-md'>
@@ -139,9 +168,45 @@ const Homepage = () => {
                     <p className='text-sm'>Percentage</p>
                   </div>
                 </div>
+                <button
+                    className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+                    onClick={() => fetchLogs(mosquito.mosquito_name)}
+                  >
+                    View Logs
+                </button>
             </div>
           ))}
       </div>
+
+      {/* Modal */}
+      {
+        showModal && (
+          <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-md w-[23vw]">
+              <h2 className="text-xl font-bold">{selectedMosquito} Logs</h2>
+              <div className='max-h-[75vh] overflow-y-auto mt-5'>
+                <ul className="mt-4">
+                  {mosquitoLogs && mosquitoLogs.length > 0 ? (
+                    mosquitoLogs.map((log, index) => (
+                      <li key={index} className="border-b border-slate-300 py-2">
+                        <span className='font-bold'>Seen:</span> {log.detected_time}
+                      </li>
+                    ))
+                  ) : (
+                    <p>No logs available.</p>
+                  )}
+                </ul>
+              </div>
+              <button
+                className="mt-5 bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-700 transition"
+                onClick={() => setShowModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )
+      }
     </div>
   )
 }
