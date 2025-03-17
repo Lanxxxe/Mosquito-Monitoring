@@ -93,6 +93,7 @@ const getMosquitoStats = async () => {
 };
 
 app.get("/api/mosquito/logs/:species", async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', 'https://mosmo.vercel.app');
     try {
       const speciesName = req.params.species
   
@@ -122,7 +123,7 @@ app.get("/api/mosquito/logs/:species", async (req, res) => {
 
 // API route
 app.get('/api/detected-stats', async (req, res) => {
-    // res.setHeader('Access-Control-Allow-Origin', 'https://mosmo.vercel.app');
+    res.setHeader('Access-Control-Allow-Origin', 'https://mosmo.vercel.app');
     const data = await getMosquitoStats();
     res.json(data);
 });
