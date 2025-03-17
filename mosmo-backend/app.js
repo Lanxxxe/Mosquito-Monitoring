@@ -70,7 +70,7 @@ const getMosquitoStats = async () => {
                     day: 'numeric',
                     hour: 'numeric',
                     minute: '2-digit',
-                    hour12: true // Ensures AM/PM format
+                    hour12: true
                 })
                 : null;
 
@@ -92,16 +92,12 @@ const getMosquitoStats = async () => {
     }
 };
 
-app.get("/api/mosquito/logs/:species", async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', 'https://mosmo.vercel.app');
+async function getMosquitoLogs(speciesName) {
     try {
-      const speciesName = req.params.species
-  
       const logs = await MosquitoDetection.find({ species_name: speciesName })
-        .sort({ detection_time: -1 }) 
-        .select("detection_time -_id") 
-
-      // Format the logs
+        .sort({ detection_time: -1 })
+        .select("detection_time -_id");
+  
       const formattedLogs = logs.map((log) => ({
         detected_time: new Date(log.detection_time).toLocaleString("en-US", {
           year: "numeric",
@@ -111,17 +107,29 @@ app.get("/api/mosquito/logs/:species", async (req, res) => {
           minute: "2-digit",
           hour12: true,
         }),
-      }))
+      }));
   
-      res.json({ species_name: speciesName, logs: formattedLogs })
+      return { species_name: speciesName, logs: formattedLogs };
     } catch (err) {
-      console.error("Error fetching mosquito logs:", err)
-      res.status(500).json({ error: "Internal Server Error" })
+      console.error("Error in getMosquitoLogs:", err);
+      throw err;
     }
-  })
+  }
 
 
-// API route
+app.get('/api/mosquito/logs/:species', async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', 'https://mosmo.vercel.app');
+    try {
+      const speciesName = req.params.species;
+      const data = await getMosquitoLogs(speciesName);
+      res.json(data);
+    } catch (err) {
+      console.error("Error fetching mosquito logs:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+
 app.get('/api/detected-stats', async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', 'https://mosmo.vercel.app');
     const data = await getMosquitoStats();
