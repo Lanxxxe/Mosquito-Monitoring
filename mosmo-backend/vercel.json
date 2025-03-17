@@ -4,6 +4,7 @@
       { "src": "app.js", "use": "@vercel/node" }
     ],
     "routes": [
-      { "src": "/api/detected-stats", "dest": "/app.js" }
+      { "src": "/api/detected-stats", "dest": "/app.js" },
+      { "src": "/api/mosquito/logs/(.*)", "dest": "/app.js" }
     ]
   }
